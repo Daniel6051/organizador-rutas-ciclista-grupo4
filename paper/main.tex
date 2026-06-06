@@ -1,0 +1,173 @@
+\documentclass{llncs}
+
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{babel}
+\usepackage{hyperref}
+\usepackage{url}
+
+\begin{document}
+
+\title{Organizador de Rutas y Mantenimiento Ciclista: Prototipo de Aplicación Móvil Multiplataforma para Mendoza, Argentina\thanks{Trabajo desarrollado en el marco de la cátedra Práctica Integradora de la Carrera Licenciatura en Informática y Desarrollo de Software, bajo la dirección del Prof. Dr. Miguel Méndez-Garabetti.}}
+
+\author{Daniel Celedón \and Facundo Contreras \and Facundo Ortiz \and Joaquín Tormo \and Miguel Méndez-Garabetti}
+
+\institute{Laboratorio de Investigación en Ciencia y Tecnología,\\
+Universidad del Aconcagua, Mendoza, Argentina.\\
+\email{celedondaniel21@gmail.com, facundomartincontreras06@gmail.com,}\\
+\email{fortiz@uda.edu.ar, joaquintormo13@gmail.com,}\\
+\email{mmendez@uda.edu.ar}}
+
+\maketitle
+\pagestyle{empty}
+\thispagestyle{empty}
+
+\begin{abstract}
+El presente trabajo describe el diseño y desarrollo de un prototipo de aplicación móvil multiplataforma orientada a ciclistas urbanos y recreativos de la Provincia de Mendoza, Argentina. La propuesta integra navegación GPS en tiempo real, bitácora digital de recorridos con cálculo de estadísticas de rendimiento y un motor de recordatorios de mantenimiento preventivo basado en kilómetros acumulados. A diferencia de las soluciones existentes, que abordan parcialmente estas necesidades, el sistema unifica en un mismo entorno funcional la planificación de rutas sobre la red de ciclovías mendocina, el registro histórico de trayectos y la gestión del estado mecánico de la bicicleta. La arquitectura adopta el stack React Native (Expo) en el frontend, Node.js/Express con PostgreSQL + PostGIS en el backend, y Firebase Cloud Messaging para notificaciones push. Se presentan los avances del prototipo, las decisiones arquitectónicas, los resultados funcionales obtenidos y las conclusiones preliminares del proceso de desarrollo.
+
+\keywords{Ciclismo urbano \and Aplicación móvil \and GPS \and Mantenimiento preventivo \and PostGIS \and Mendoza}
+\end{abstract}
+
+\section{Introducción}
+
+La Provincia de Mendoza cuenta con más de 120 km de ciclovías habilitadas en el Gran Mendoza y una cultura ciclista en crecimiento sostenido, impulsada por el municipio capitalino, la UNCUYO y organizaciones civiles como Biciudad. Rutas urbanas emblemáticas —Acceso Este, Avenida San Martín— y circuitos recreativos —Cañón del Atuel en San Rafael, Camino al Challao, Potrerillos— concentran miles de ciclistas semanales. Sin embargo, los usuarios carecen de herramientas integradas que combinen la navegación GPS, el registro de rendimiento y la gestión del mantenimiento de su bicicleta en un único entorno.
+
+Las soluciones digitales disponibles en el mercado latinoamericano abordan este problema de manera fragmentada. Aplicaciones como Cletea \cite{Calderon2022} y Bicity \cite{Avalos2021} incorporan registro de kilómetros y estadísticas de rendimiento, pero no incluyen un sistema de mantenimiento preventivo basado en desgaste acumulado. Por su parte, trabajos como el de Saavedra Basto \cite{Saavedra2022} —referencia metodológica del presente proyecto— plantean plataformas de visualización y seguimiento de rutas ciclísticas, sin extender la funcionalidad al perfil mecánico de la bicicleta.
+
+En el contexto de ciudades inteligentes y micro-movilidad sostenible \cite{Rodriguez2025}, el diseño de aplicaciones que integren datos geoespaciales, telemetría de rendimiento y alertas predictivas representa un área de investigación activa a nivel nacional e internacional \cite{Alves2025,Boronat2021}. El presente trabajo presenta el diseño arquitectónico, los avances de implementación y los resultados esperados del prototipo \textit{Organizador de Rutas y Mantenimiento Ciclista}, desarrollado por el Grupo 4 de la Práctica Integradora de la Licenciatura en Informática y Desarrollo de Software de la Universidad del Aconcagua.
+
+El repositorio del proyecto se encuentra disponible en \url{https://github.com/Daniel6051/proyecto-ciclista-grupo4}.
+
+\section{Marco Teórico y Estado del Arte}
+
+\subsection{Aplicaciones de navegación y gestión para ciclistas}
+
+La integración de GPS y mapas interactivos en aplicaciones ciclísticas ha sido ampliamente documentada en la literatura latinoamericana reciente. Saavedra Basto \cite{Saavedra2022} desarrolla un prototipo web y móvil para la gestión de recorridos en bicicleta en Bucaramanga, incorporando geolocalización, alertas viales y puntos de interés. Esta obra constituye la base arquitectónica y metodológica del presente proyecto, en particular el módulo de visualización de rutas.
+
+Calderón Santillán et al. \cite{Calderon2022} presentan \textit{Cletea}, una aplicación móvil de navegación GPS para ciclistas urbanos en Lima que registra estadísticas de rendimiento —distancia, calorías, tiempo— y acumula kilómetros como moneda de incentivo. Su diseño valida, en condiciones de mercado real, la demanda de este tipo de funcionalidades. En la misma línea, Avalos Alfaro \cite{Avalos2021} desarrolla \textit{Bicity}, plataforma que captura recorridos GPS en segundo plano y genera historiales semanales de rendimiento, cuya lógica de telemetría es directamente aplicable al módulo de mantenimiento preventivo propuesto.
+
+El análisis de decisión de ruta desarrollado por Ramírez Leuro \cite{Ramirez2021}, con 3.016 trayectos GPS registrados por la aplicación Biko en Bogotá, proporciona un marco metodológico sólido para identificar variables de seguridad vial que podrían integrarse en versiones futuras del sistema.
+
+\subsection{Mantenimiento preventivo y monitoreo IoT}
+
+El módulo de mantenimiento preventivo del prototipo tiene sustento teórico en trabajos como el de Peñafiel Tello \cite{Penafiel2018}, que propone un sistema de diagnóstico vehicular basado en IoT transmitiendo datos del puerto OBD-II a una aplicación móvil. Aunque orientado a automóviles, el esquema de extracción y transmisión de datos de desgaste —traducido al contexto ciclístico como kilómetros acumulados por componente— es análogo al propuesto.
+
+Wursten \cite{Wursten2025} presenta \textit{loTrack}, un prototipo IoT para monitoreo y gestión remota de dispositivos publicado en el XXXI CACIC, cuyo enfoque de monitoreo continuo fundamenta la viabilidad del motor de alertas automáticas por umbral de kilometraje.
+
+\subsection{Procesamiento de datos móviles en tiempo real}
+
+La captura y fusión de datos multimodales en tiempo real sobre dispositivos móviles es abordada por Bonora et al. \cite{Bonora2025} en el XXXI CACIC, con aplicaciones al cómputo del estado cognitivo a partir de sensores. Sus conclusiones sobre eficiencia de procesamiento en plataformas móviles son relevantes para el diseño del módulo de captura GPS y cálculo altimétrico. Complementariamente, Saavedra et al. \cite{Saavedra2025} demuestran la viabilidad de clasificadores de actividad física ejecutados en sistemas embebidos de bajos recursos, reforzando la factibilidad de que la app procese datos de esfuerzo físico sin impacto crítico en la batería.
+
+\subsection{Infraestructura ciclista y ciudades inteligentes}
+
+El trabajo de Alves et al. \cite{Alves2025} aplica la teoría de transporte óptimo a redes multicapa de infraestructura ciclista, identificando parámetros de control que optimizan el flujo urbano entre calles convencionales y ciclovías protegidas. Este enfoque es relevante para la evolución del módulo de ruteo hacia algoritmos que ponderen la calidad de la infraestructura disponible en Mendoza. Por su parte, Rodríguez \cite{Rodriguez2025} enmarca las aplicaciones de micro-movilidad dentro del paradigma de ciudades inteligentes, destacando la captura de datos ciudadanos como insumo para la gestión urbana sostenible.
+
+\subsection{Seguridad del ciclista y sistemas de alerta}
+
+Boronat et al. \cite{Boronat2021} presentan un sistema de alertas basado en smartphones para ciclistas urbanos que evalúa protocolos REST/HTTP y UDP sobre redes 4G, concluyendo que ambos son viables en latencia para comunicaciones de seguridad en tiempo real. Su arquitectura cliente-servidor es directamente aplicable al módulo de notificación de rutas cortadas o condiciones peligrosas.
+
+El sistema EnRutaT de Cáceres Vera \cite{Caceres2021} propone una arquitectura colaborativa de app móvil más dispositivo inteligente adherido a la bicicleta, con actualización de datos en tiempo real y escalabilidad a múltiples ciudades. Su análisis de viabilidad técnica y comercial sirve de referencia para evaluar la escalabilidad futura del presente prototipo.
+
+\section{Diseño Arquitectónico}
+
+El sistema adopta una arquitectura de tres capas: presentación (SPA móvil en React Native/Expo), lógica de negocio (API REST en Node.js/Express) y persistencia (PostgreSQL + PostGIS). Este patrón es consistente con la arquitectura propuesta por Saavedra Basto \cite{Saavedra2022} y permite una integración incremental de los módulos funcionales.
+
+\subsection{Frontend — Aplicación Móvil}
+
+La aplicación móvil se desarrolla con React Native (Expo), lo que permite generar binarios nativos para iOS y Android desde una única base de código. La captura de posición en tiempo real se realiza mediante \texttt{expo-location}, que expone latitud, longitud, altitud y velocidad del GPS del dispositivo sin requerir código nativo adicional. La visualización de rutas sobre el mapa de Mendoza se implementa con \texttt{react-native-maps} integrado al Google Maps SDK, reutilizando el componente de código abierto sin desarrollo propio (licencia MIT). La persistencia local de recorridos en zonas sin conectividad —como los cañones cordilleranos— se gestiona con AsyncStorage y SQLite.
+
+\subsection{Backend — API REST}
+
+La API principal se implementa con Node.js y Express.js, siguiendo el patrón MVC adaptado a servicios REST: \textit{controllers/routes} (presentación), \textit{services} (lógica de negocio) y \textit{repositories} (acceso a datos). PostgreSQL con la extensión PostGIS provee soporte geoespacial nativo para almacenar rutas como geometrías y ejecutar consultas de distancia y área directamente en la base de datos. La autenticación se gestiona mediante JWT (\textit{stateless}), y las notificaciones push se delegan a Firebase Cloud Messaging (FCM), reutilizando la infraestructura de Google sin desarrollo propio.
+
+El motor de mantenimiento preventivo emplea \texttt{node-cron} como scheduler que evalúa diariamente los kilómetros acumulados de cada bicicleta registrada. Cuando se supera el umbral configurado por el usuario para un componente —por ejemplo, 500 km para la cadena o 2.000 km para los frenos— el sistema dispara automáticamente una notificación push.
+
+\subsection{Diagrama de flujo de un recorrido}
+
+El flujo representativo para el módulo de bitácora, tomando como ejemplo el tramo Palmares–Potrerillos, es el siguiente:
+
+\begin{enumerate}
+  \item La app activa \texttt{expo-location} y captura coordenadas GPS cada 5 segundos.
+  \item Al finalizar, el usuario presiona \textit{Detener}. La app calcula distancia (fórmula de Haversine) y duración.
+  \item Se envía \texttt{POST /api/rides} con el array de puntos y las métricas calculadas.
+  \item El backend valida el JWT, verifica la bicicleta seleccionada y persiste el recorrido en PostGIS.
+  \item El motor de mantenimiento revisa los km acumulados y, si superan algún umbral, dispara una notificación push vía FCM.
+  \item El módulo de estadísticas actualiza los agregados disponibles en \texttt{GET /api/stats/summary}.
+\end{enumerate}
+
+\subsection{Endpoints principales}
+
+La Tabla~\ref{tab:endpoints} resume los endpoints REST diseñados para los módulos centrales del sistema.
+
+\begin{table}[h]
+\caption{Endpoints principales de la API REST.}\label{tab:endpoints}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Módulo} & \textbf{Endpoint} & \textbf{Método} \\
+\hline
+Autenticación & \texttt{/api/auth/register}, \texttt{/api/auth/login} & POST \\
+Bicicletas & \texttt{/api/bikes}, \texttt{/api/bikes/:id} & POST, GET \\
+Recorridos & \texttt{/api/rides}, \texttt{/api/rides/history} & POST, GET \\
+Mantenimiento & \texttt{/api/maintenance/alerts}, \texttt{/api/maintenance/:id} & GET, PUT \\
+Estadísticas & \texttt{/api/stats/summary}, \texttt{/api/stats/compare} & GET \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Avances y Desarrollo}
+
+El desarrollo del prototipo se organizó en seis etapas iterativas de dos semanas cada una, siguiendo un enfoque incremental validado en cada entrega. A continuación se describen los avances concretos alcanzados al momento de la presente comunicación.
+
+\subsection{Etapa 1 — Configuración del entorno}
+
+Se configuró el repositorio Git con estrategia de branching \texttt{main / develop / feature-*} y se definió la estructura de la base de datos con entidades geoespaciales adaptadas a las rutas mendocinas. El entorno de desarrollo fue contenerizado con Docker Compose, garantizando reproducibilidad entre los cuatro integrantes del grupo. Se instalaron y validaron las dependencias principales: Expo SDK, Node.js 20 LTS, PostgreSQL 16 con PostGIS 3.4.
+
+\subsection{Etapa 2 — Autenticación y perfiles de bicicleta}
+
+Se implementó el módulo de registro y autenticación con JWT, incluyendo validación de campos, hash de contraseñas con bcrypt y manejo de tokens de expiración. Se completó el CRUD de perfiles de bicicleta, permitiendo al usuario registrar múltiples bicicletas con atributos como rodado, tipo (urbana, mountain bike, ruta) y nombre personalizado.
+
+\subsection{Etapa 3 — Captura GPS y bitácora}
+
+Se integró \texttt{expo-location} en la aplicación móvil con captura de coordenadas cada 5 segundos en segundo plano. Se implementó la fórmula de Haversine en \texttt{gps.utils.js} para el cálculo de distancia entre puntos consecutivos. Los recorridos se almacenan en PostGIS como geometrías de tipo \texttt{LINESTRING} con timestamps, permitiendo consultas geoespaciales eficientes. Se desarrolló la pantalla de historial con listado de recorridos previos y métricas básicas (distancia, duración, velocidad promedio).
+
+\subsection{Etapa 4 — Motor de mantenimiento preventivo}
+
+Se implementó el scheduler \texttt{node-cron} con ejecución diaria a las 00:00 hs (zona horaria America/Argentina/Mendoza). El motor evalúa los kilómetros acumulados por bicicleta y componente, comparándolos contra los umbrales configurados. Ante una superación, genera un registro de alerta en la tabla \texttt{maintenance\_alerts} y dispara una notificación push vía Firebase FCM. Se probaron exitosamente alertas para cadena (umbral 500 km), frenos (2.000 km) y cubiertas (3.000 km).
+
+\subsection{Etapa 5 — Estadísticas e interfaz}
+
+Se desarrolló el módulo de estadísticas con agregados semanales y mensuales: kilómetros totales, recorridos completados, velocidad máxima y estimación calórica basada en peso del usuario y altimetría del trayecto —concepto respaldado por Bonora et al. \cite{Bonora2025} para la fusión de datos multimodales en tiempo real. Se implementó la pantalla principal con acceso rápido a los módulos de navegación, bitácora y mantenimiento, priorizando la usabilidad en movimiento conforme a las heurísticas de Nielsen referenciadas por Ruibal Piñero \cite{Ruibal2023}.
+
+\subsection{Estado actual del prototipo}
+
+Los módulos de autenticación, perfiles, captura GPS, bitácora y motor de mantenimiento se encuentran operativos en entorno de desarrollo. La integración con Google Maps SDK para navegación turn-by-turn está en progreso. La etapa 6 —pruebas de integración, correcciones y documentación técnica final— se encuentra planificada para las semanas 11 y 12 del calendario de desarrollo.
+
+\section{Resultados Esperados}
+
+Al concluir el ciclo de desarrollo, se espera contar con los siguientes entregables verificables:
+
+\begin{itemize}
+  \item \textbf{Aplicación móvil funcional} para Android (APK) e iOS, instalable desde Expo Go o como build nativo, que integre los seis módulos descritos.
+  \item \textbf{API REST documentada} con Postman/Swagger, con al menos 18 endpoints cubiertos por pruebas de integración automatizadas.
+  \item \textbf{Base de datos geoespacial} con rutas reales de Mendoza cargadas como datos de prueba: tramo Palmares–Potrerillos, Cañón del Atuel (San Rafael) y circuito urbano Biciudad.
+  \item \textbf{Motor de mantenimiento} validado con al menos 50 bicicletas simuladas y tres componentes con umbrales distintos, verificando que las notificaciones push se emiten dentro de los 5 minutos siguientes a la superación del umbral.
+  \item \textbf{Evaluación de usabilidad} mediante el Sistema de Escalas de Usabilidad (SUS), siguiendo la metodología empleada por Anilema Salgado \cite{Anilema2024} para la validación de prototipos IoT en entornos universitarios latinoamericanos.
+\end{itemize}
+
+En términos cuantitativos, se espera que el sistema soporte al menos 100 usuarios concurrentes con latencia de respuesta de la API inferior a 300 ms en el 95\% de las solicitudes, medido sobre infraestructura de prueba local con Docker Compose.
+
+\section{Conclusiones}
+
+El presente trabajo demuestra la viabilidad técnica de un prototipo de aplicación móvil que integra navegación GPS, bitácora de rendimiento y mantenimiento preventivo para ciclistas de Mendoza. La arquitectura React Native (Expo) + Node.js/Express + PostgreSQL/PostGIS, seleccionada en función de los requisitos de cobertura geoespacial y notificaciones en tiempo real, ha demostrado ser adecuada para el contexto de uso identificado.
+
+Los avances alcanzados en las etapas 1 a 5 validan la coherencia del diseño arquitectónico y la factibilidad de los módulos diferenciadores: el motor de recordatorios de mantenimiento preventivo basado en kilómetros acumulados y el sistema de perfiles de bicicleta con estimación calórica ajustada a la altimetría mendocina.
+
+La reutilización de componentes de código abierto —\texttt{react-native-maps}, Firebase Cloud Messaging SDK, OSRM, fórmula de Haversine— y de la base metodológica provista por Saavedra Basto \cite{Saavedra2022} permitió al grupo concentrar el esfuerzo de desarrollo en los módulos que aportan mayor valor diferencial para el ciclista mendocino.
+
+Como trabajo futuro, se planea incorporar ruteo ponderado por seguridad vial conforme al marco metodológico de Ramírez Leuro \cite{Ramirez2021} y explorar la integración con datos del sistema de gemelos digitales de tráfico propuesto por Vinciguerra et al. \cite{Vinciguerra2025} para mejorar la calidad de las recomendaciones de ruta en tiempo real.
+
+\bibliographystyle{ieeetr}
+\bibliography{referencias}
+
+\end{document}

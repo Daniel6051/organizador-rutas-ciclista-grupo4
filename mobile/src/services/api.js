@@ -38,6 +38,11 @@ export function loginUser({ email, password }) {
   });
 }
 
+// ---------- Bicicletas ----------
+export function getBikes() {
+  return request("/bikes");
+}
+
 // ---------- Recorridos ----------
 export function startRoute({ bikeId }) {
   return request("/routes/start", {

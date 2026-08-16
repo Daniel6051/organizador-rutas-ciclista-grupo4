@@ -12,17 +12,32 @@ import {
 import { loginUser } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errores, setErrores] = useState({});
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin() {
-    if (!email || !password) {
-      Alert.alert("Faltan datos", "Completá email y contraseña.");
-      return;
+  function validar() {
+    const nuevosErrores = {};
+    if (!email) {
+      nuevosErrores.email = "Ingresá tu email.";
+    } else if (!EMAIL_REGEX.test(email)) {
+      nuevosErrores.email = "El email no tiene un formato válido.";
     }
+    if (!password) {
+      nuevosErrores.password = "Ingresá tu contraseña.";
+    }
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  }
+
+  async function handleLogin() {
+    if (!validar()) return;
+
     setLoading(true);
     try {
       const data = await loginUser({ email, password });
@@ -41,20 +56,29 @@ export default function LoginScreen({ navigation }) {
       <Text style={styles.subtitle}>Ciclismo en Mendoza</Text>
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, errores.email && styles.inputError]}
         placeholder="Email"
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(v) => {
+          setEmail(v);
+          if (errores.email) setErrores((e) => ({ ...e, email: null }));
+        }}
       />
+      {errores.email && <Text style={styles.errorTexto}>{errores.email}</Text>}
+
       <TextInput
-        style={styles.input}
+        style={[styles.input, errores.password && styles.inputError]}
         placeholder="Contraseña"
         secureTextEntry
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(v) => {
+          setPassword(v);
+          if (errores.password) setErrores((e) => ({ ...e, password: null }));
+        }}
       />
+      {errores.password && <Text style={styles.errorTexto}>{errores.password}</Text>}
 
       <TouchableOpacity
         style={styles.button}
@@ -84,8 +108,10 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 8,
     padding: 12,
-    marginBottom: 12,
+    marginBottom: 4,
   },
+  inputError: { borderColor: "#c0392b" },
+  errorTexto: { color: "#c0392b", fontSize: 12, marginBottom: 10 },
   button: {
     backgroundColor: "#2e7d32",
     borderRadius: 8,

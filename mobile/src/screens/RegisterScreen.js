@@ -12,18 +12,38 @@ import {
 import { registerUser } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function RegisterScreen({ navigation }) {
   const { signIn } = useAuth();
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errores, setErrores] = useState({});
   const [loading, setLoading] = useState(false);
 
-  async function handleRegister() {
-    if (!email || !password) {
-      Alert.alert("Faltan datos", "Completá email y contraseña.");
-      return;
+  function validar() {
+    const nuevosErrores = {};
+    if (!nombre.trim()) {
+      nuevosErrores.nombre = "Ingresá tu nombre.";
     }
+    if (!email) {
+      nuevosErrores.email = "Ingresá tu email.";
+    } else if (!EMAIL_REGEX.test(email)) {
+      nuevosErrores.email = "El email no tiene un formato válido.";
+    }
+    if (!password) {
+      nuevosErrores.password = "Ingresá una contraseña.";
+    } else if (password.length < 6) {
+      nuevosErrores.password = "La contraseña debe tener al menos 6 caracteres.";
+    }
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  }
+
+  async function handleRegister() {
+    if (!validar()) return;
+
     setLoading(true);
     try {
       const data = await registerUser({ email, nombre, password });
@@ -40,26 +60,40 @@ export default function RegisterScreen({ navigation }) {
       <Text style={styles.title}>Crear cuenta</Text>
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, errores.nombre && styles.inputError]}
         placeholder="Nombre"
         value={nombre}
-        onChangeText={setNombre}
+        onChangeText={(v) => {
+          setNombre(v);
+          if (errores.nombre) setErrores((e) => ({ ...e, nombre: null }));
+        }}
       />
+      {errores.nombre && <Text style={styles.errorTexto}>{errores.nombre}</Text>}
+
       <TextInput
-        style={styles.input}
+        style={[styles.input, errores.email && styles.inputError]}
         placeholder="Email"
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(v) => {
+          setEmail(v);
+          if (errores.email) setErrores((e) => ({ ...e, email: null }));
+        }}
       />
+      {errores.email && <Text style={styles.errorTexto}>{errores.email}</Text>}
+
       <TextInput
-        style={styles.input}
+        style={[styles.input, errores.password && styles.inputError]}
         placeholder="Contraseña"
         secureTextEntry
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(v) => {
+          setPassword(v);
+          if (errores.password) setErrores((e) => ({ ...e, password: null }));
+        }}
       />
+      {errores.password && <Text style={styles.errorTexto}>{errores.password}</Text>}
 
       <TouchableOpacity
         style={styles.button}
@@ -88,8 +122,10 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 8,
     padding: 12,
-    marginBottom: 12,
+    marginBottom: 4,
   },
+  inputError: { borderColor: "#c0392b" },
+  errorTexto: { color: "#c0392b", fontSize: 12, marginBottom: 10 },
   button: {
     backgroundColor: "#2e7d32",
     borderRadius: 8,

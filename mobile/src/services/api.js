@@ -5,7 +5,9 @@
 
 // IMPORTANTE: reemplazar por la IP local de tu compu en la red (no "localhost",
 // porque el celu/emulador no la resuelve). Ejemplo: "http://192.168.0.15:3000"
-export const BASE_URL = "http://192.168.1.5:3000";
+
+//export const BASE_URL = "http://192.168.1.5:3000";
+export const BASE_URL = "http://192.168.1.48:3000";
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -39,8 +41,29 @@ export function loginUser({ email, password }) {
 }
 
 // ---------- Bicicletas ----------
+
 export function getBikes() {
   return request("/bikes");
+}
+
+export function createBike({ nombre, tipo }) {
+  return request("/bikes", {
+    method: "POST",
+    body: JSON.stringify({ nombre, tipo }),
+  });
+}
+
+export function updateBike(bikeId, campos) {
+  return request(`/bikes/${bikeId}`, {
+    method: "PUT",
+    body: JSON.stringify(campos),
+  });
+}
+
+export function deleteBike(bikeId) {
+  return request(`/bikes/${bikeId}`, {
+    method: "DELETE",
+  });
 }
 
 // ---------- Recorridos ----------
@@ -62,5 +85,18 @@ export function finishRoute(routeId, { distanciaKm, desnivelM, terreno } = {}) {
   return request(`/routes/${routeId}/finish`, {
     method: "POST",
     body: JSON.stringify({ distanciaKm, desnivelM, terreno }),
+  });
+}
+
+// ---------- Estadísticas ----------
+export function getStatsSummary() {
+  return request("/stats/summary");
+}
+
+// ---------- Notificaciones ----------
+export function registerDeviceToken({ userId, token }) {
+  return request("/users/device-token", {
+    method: "POST",
+    body: JSON.stringify({ userId, token }),
   });
 }

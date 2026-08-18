@@ -2,10 +2,12 @@
 // Pantalla principal: pide permisos de ubicación, muestra el mapa centrado
 // en la posición actual (con un marcador de bici animado con pulso), permite
 // elegir la bicicleta activa, y arranca/finaliza un recorrido trackeando los
-// puntos GPS mientras la app está abierta.
+// puntos GPS mientras la app está abierta. También registra el dispositivo
+// para notificaciones push y escucha las que lleguen.
 //
 // Requiere:
 //   npx expo install expo-location react-native-maps
+//   npx expo install expo-notifications expo-device expo-constants
 
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -23,6 +25,10 @@ import MapView, { Marker, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
 import { startRoute, sendRoutePoints, finishRoute, getBikes } from "../services/api";
 import { calcularDistanciaKm, calcularDesnivelM } from "../services/geo";
+import { guardarPuntoLocal } from "../services/db";
+import { sincronizarRuta } from "../services/sync";
+import { registrarNotificaciones, suscribirseANotificaciones } from "../services/notifications";
+import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 
 // Coordenadas iniciales de referencia: Mendoza Capital
@@ -129,16 +135,34 @@ export default function HomeScreen() {
     }
   }
 
-  // Pedir permisos de ubicación y cargar las bicicletas del usuario al entrar
+  // Pedir permisos de ubicación al entrar, registrar notificaciones,
+  // y limpiar suscripciones al salir
   useEffect(() => {
     pedirPermisoUbicacion();
-    cargarBicis();
+
+    if (user?.id) {
+      registrarNotificaciones(user.id);
+    }
+
+    const quitarSuscripcion = suscribirseANotificaciones((notificacion) => {
+      const titulo = notificacion.request.content.title || "Notificación";
+      const cuerpo = notificacion.request.content.body || "";
+      Alert.alert(titulo, cuerpo);
+    });
 
     return () => {
       if (watchSubscription.current) watchSubscription.current.remove();
       if (timerRef.current) clearInterval(timerRef.current);
+      quitarSuscripcion();
     };
   }, []);
+
+  // Recargar bicis cada vez que se vuelve a esta pestaña (ej: después de crear una)
+  useFocusEffect(
+    React.useCallback(() => {
+      cargarBicis();
+    }, [])
+  );
 
   function centrarEnMiUbicacion() {
     if (!posicionActual || !mapRef.current) return;
@@ -192,6 +216,7 @@ export default function HomeScreen() {
           };
           setPosicionActual(loc.coords);
           setPuntos((prev) => [...prev, nuevoPunto]);
+          guardarPuntoLocal(route.id, nuevoPunto);
         }
       );
     } catch (err) {
@@ -210,11 +235,12 @@ export default function HomeScreen() {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-
     setFinalizando(true);
     try {
-      if (puntos.length > 0) {
-        await sendRoutePoints(routeId, puntos);
+      try {
+        await sincronizarRuta(routeId);
+      } catch (err) {
+        console.warn("Sin señal, los puntos quedaron guardados para sincronizar después:", err.message);
       }
 
       // Cálculo real a partir de los puntos GPS registrados, en vez de

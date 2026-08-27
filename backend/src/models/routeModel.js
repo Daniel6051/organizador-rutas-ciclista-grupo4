@@ -29,6 +29,8 @@ function formatRoute(row, puntos = []) {
     distanciaKm: row.distancia_km !== null && row.distancia_km !== undefined ? parseFloat(row.distancia_km) : null,
     desnivelM: row.desnivel_m !== null && row.desnivel_m !== undefined ? parseFloat(row.desnivel_m) : null,
     terreno: row.terreno || 'mixto',
+    clima: row.clima || null,
+    estiloConduccion: row.estilo_conduccion || null,
     geojson: geojson,
     puntosGPS: puntos || [],
     createdAt: row.created_at,
@@ -113,10 +115,10 @@ async function addRoutePoints(routeId, userId, points = []) {
  * Finaliza un recorrido, consolida la geometría PostGIS (LineString) y calcula métricas
  * @param {number|string} routeId
  * @param {number|string} userId
- * @param {Object} metrics - { distanciaKm, desnivelM, terreno }
+ * @param {Object} metrics - { distanciaKm, desnivelM, terreno, clima, estiloConduccion }
  * @returns {Promise<Object|null>} Recorrido finalizado
  */
-async function finishRoute(routeId, userId, { distanciaKm, desnivelM, terreno } = {}) {
+async function finishRoute(routeId, userId, { distanciaKm, desnivelM, terreno, clima, estiloConduccion } = {}) {
   // Verificar existencia y pertenencia
   const checkQuery = `SELECT id, status, finalizado FROM routes WHERE id = $1 AND user_id = $2;`;
   const checkRes = await db.query(checkQuery, [routeId, userId]);
@@ -168,6 +170,8 @@ async function finishRoute(routeId, userId, { distanciaKm, desnivelM, terreno } 
     : (calculatedElevationGain !== null ? calculatedElevationGain : 0.0);
 
   const finalTerreno = terreno ? String(terreno).trim() : 'mixto';
+  const finalClima = clima ? String(clima).trim() : null;
+  const finalEstilo = estiloConduccion ? String(estiloConduccion).trim() : null;
 
   let updateQuery;
   let updateValues;
@@ -184,14 +188,16 @@ async function finishRoute(routeId, userId, { distanciaKm, desnivelM, terreno } 
         distancia_km = $2,
         desnivel_m = $3,
         terreno = $4,
+        clima = $5,
+        estilo_conduccion = $6,
         fin = CURRENT_TIMESTAMP,
         status = 'finished',
         finalizado = TRUE,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND user_id = $5
-      RETURNING id, user_id, bike_id, inicio, fin, status, finalizado, distancia_km, desnivel_m, terreno, ST_AsGeoJSON(geom) AS geojson, created_at, updated_at;
+      WHERE id = $1 AND user_id = $7
+      RETURNING id, user_id, bike_id, inicio, fin, status, finalizado, distancia_km, desnivel_m, terreno, clima, estilo_conduccion, ST_AsGeoJSON(geom) AS geojson, created_at, updated_at;
     `;
-    updateValues = [routeId, finalDistKm, finalDesnivelM, finalTerreno, userId];
+    updateValues = [routeId, finalDistKm, finalDesnivelM, finalTerreno, finalClima, finalEstilo, userId];
   } else {
     updateQuery = `
       UPDATE routes
@@ -199,14 +205,16 @@ async function finishRoute(routeId, userId, { distanciaKm, desnivelM, terreno } 
         distancia_km = $2,
         desnivel_m = $3,
         terreno = $4,
+        clima = $5,
+        estilo_conduccion = $6,
         fin = CURRENT_TIMESTAMP,
         status = 'finished',
         finalizado = TRUE,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND user_id = $5
-      RETURNING id, user_id, bike_id, inicio, fin, status, finalizado, distancia_km, desnivel_m, terreno, ST_AsGeoJSON(geom) AS geojson, created_at, updated_at;
+      WHERE id = $1 AND user_id = $7
+      RETURNING id, user_id, bike_id, inicio, fin, status, finalizado, distancia_km, desnivel_m, terreno, clima, estilo_conduccion, ST_AsGeoJSON(geom) AS geojson, created_at, updated_at;
     `;
-    updateValues = [routeId, finalDistKm, finalDesnivelM, finalTerreno, userId];
+    updateValues = [routeId, finalDistKm, finalDesnivelM, finalTerreno, finalClima, finalEstilo, userId];
   }
 
   const { rows } = await db.query(updateQuery, updateValues);

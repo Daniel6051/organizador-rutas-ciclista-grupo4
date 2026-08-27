@@ -1,4 +1,5 @@
 const routeModel = require('../models/routeModel');
+const notificationService = require('../services/notificationService');
 
 /**
  * Iniciar un nuevo recorrido
@@ -71,23 +72,41 @@ async function finish(req, res) {
       return res.status(404).json({ error: 'Recorrido no encontrado' });
     }
 
-    const { distanciaKm, desnivelM, terreno } = req.body;
+    const { distanciaKm, desnivelM, terreno, clima, estilo_conduccion } = req.body;
 
     const finishedRoute = await routeModel.finishRoute(Number(id), userId, {
       distanciaKm,
       desnivelM,
       terreno,
+      clima,
+      estiloConduccion: estilo_conduccion
     });
 
     if (!finishedRoute) {
       return res.status(404).json({ error: 'Recorrido no encontrado' });
     }
 
-    // Evaluación inicial de desgaste compatible con el contrato mobile
-    // y preparado para la posterior integración del motor de reglas de Tormo
+    // Motor de Mantenimiento Ponderado de Tormo
     const distancia = finishedRoute.distanciaKm || 0;
     const desnivel = finishedRoute.desnivelM || 0;
-    const desgasteEstimado = parseFloat((distancia * 0.004 + desnivel * 0.0001).toFixed(3));
+    
+    let desgasteBase = (distancia * 0.004) + (desnivel * 0.0001);
+    
+    // Multiplicadores
+    let multClima = 1.0;
+    if (finishedRoute.clima === 'lluvia') multClima = 1.5;
+    else if (finishedRoute.clima === 'nieve') multClima = 2.0;
+    else if (finishedRoute.clima === 'nublado') multClima = 1.1;
+
+    let multEstilo = 1.0;
+    if (finishedRoute.estiloConduccion === 'suave') multEstilo = 0.8;
+    else if (finishedRoute.estiloConduccion === 'agresivo') multEstilo = 1.3;
+
+    let multTerreno = 1.0;
+    if (finishedRoute.terreno === 'asfalto') multTerreno = 0.9;
+    else if (finishedRoute.terreno === 'montaña' || finishedRoute.terreno === 'tierra') multTerreno = 1.4;
+
+    const desgasteEstimado = parseFloat((desgasteBase * multClima * multEstilo * multTerreno).toFixed(3));
 
     const evaluacionMantenimiento = {
       routeId: finishedRoute.id,
@@ -95,6 +114,13 @@ async function finish(req, res) {
       componentesAfectados: ['cadena', 'frenos', 'neumaticos'],
       alertaGenerada: distancia > 15 || desgasteEstimado > 0.08,
     };
+
+    if (evaluacionMantenimiento.alertaGenerada) {
+      // Disparar notificación push sin bloquear la respuesta HTTP
+      notificationService.sendMaintenanceAlert(userId, evaluacionMantenimiento).catch(err => {
+        console.error('Fallo al enviar notificación push en background:', err);
+      });
+    }
 
     return res.json({
       route: finishedRoute,

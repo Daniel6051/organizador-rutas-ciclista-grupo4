@@ -72,4 +72,10 @@ CREATE TABLE IF NOT EXISTS route_points (
 CREATE INDEX IF NOT EXISTS idx_route_points_route_id ON route_points(route_id);
 CREATE INDEX IF NOT EXISTS idx_route_points_geom ON route_points USING GIST(geom);
 
+-- Agregado por Tormo, pendiente de validar con Contreras
+ALTER TABLE routes ADD COLUMN clima VARCHAR(50);
+ALTER TABLE routes ADD COLUMN estilo_conduccion VARCHAR(50);
+
+-- Tarea 3: Firebase Cloud Messaging
+ALTER TABLE users ADD COLUMN fcm_token VARCHAR(255);
 

@@ -105,6 +105,10 @@ export default function HomeScreen() {
   const [iniciando, setIniciando] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
 
+  // Selectores para el motor de mantenimiento ponderado (Tormo)
+  const [clima, setClima] = useState("soleado");
+  const [estiloConduccion, setEstiloConduccion] = useState("moderado");
+
   const watchSubscription = useRef(null);
   const mapRef = useRef(null);
   const timerRef = useRef(null);
@@ -251,7 +255,9 @@ export default function HomeScreen() {
       const resultado = await finishRoute(routeId, {
         distanciaKm,
         desnivelM,
-        terreno: "mixto", // TODO: cuando haya perfil de bici con tipo, derivar esto
+        terreno: "mixto", // TODO: derivar del perfil de bici cuando esté disponible
+        clima,
+        estilo_conduccion: estiloConduccion,
       });
       setRecorridoActivo(false);
 
@@ -390,6 +396,39 @@ export default function HomeScreen() {
             <Text style={styles.puntosInfo}>
               {formatearDuracion(duracionSeg)} — {calcularDistanciaKm(puntos)} km — {puntos.length} puntos
             </Text>
+
+            {/* Selector de clima — alimenta el multiplicador del motor ponderado */}
+            <Text style={styles.selectorLabel}>Clima durante el recorrido:</Text>
+            <View style={styles.selectorRow}>
+              {[["soleado", "☀️"], ["nublado", "🌥️"], ["lluvia", "🌧️"], ["nieve", "❄️"]].map(([val, emoji]) => (
+                <TouchableOpacity
+                  key={val}
+                  style={[styles.chipBici, clima === val && styles.chipBiciActiva]}
+                  onPress={() => setClima(val)}
+                >
+                  <Text style={[styles.chipBiciTexto, clima === val && styles.chipBiciTextoActivo]}>
+                    {emoji} {val}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Selector de estilo de conducción */}
+            <Text style={styles.selectorLabel}>Estilo de conducción:</Text>
+            <View style={styles.selectorRow}>
+              {[["suave", "🟢"], ["moderado", "🟡"], ["agresivo", "🔴"]].map(([val, emoji]) => (
+                <TouchableOpacity
+                  key={val}
+                  style={[styles.chipBici, estiloConduccion === val && styles.chipBiciActiva]}
+                  onPress={() => setEstiloConduccion(val)}
+                >
+                  <Text style={[styles.chipBiciTexto, estiloConduccion === val && styles.chipBiciTextoActivo]}>
+                    {emoji} {val}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <TouchableOpacity
               style={[styles.botonFinalizar, finalizando && styles.botonDeshabilitado]}
               onPress={handleFinalizarRecorrido}
@@ -512,6 +551,8 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: "center",
   },
+  selectorLabel: { fontSize: 12, color: "#555", marginBottom: 4, marginTop: 8 },
+  selectorRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 4 },
   botonDeshabilitado: { opacity: 0.6 },
   botonTexto: { color: "#fff", fontWeight: "bold", fontSize: 16 },
 });

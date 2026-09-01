@@ -98,7 +98,9 @@ Saavedra Basto, A. (2022). *Prototipo de aplicación móvil y web para la visual
 | Configuración del entorno (Docker, Expo, PostgreSQL) | ✅ Completado |
 | Autenticación + Perfiles de bicicleta | ✅ Completado |
 | Captura GPS + Bitácora | ✅ Completado |
-| Motor de mantenimiento preventivo | ✅ Completado |
+| Motor de mantenimiento ponderado (distancia + desnivel + multiplicadores) | ✅ Completado |
+| Backup nocturno con node-cron | ✅ Completado |
+| Notificaciones push Firebase Cloud Messaging | ✅ Completado |
 | Estadísticas + Interfaz | ✅ Completado |
 | Navegación turn-by-turn (Google Maps) | 🔄 En progreso |
 | Pruebas de integración + Documentación final | 📅 Planificado |

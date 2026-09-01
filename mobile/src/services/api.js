@@ -6,8 +6,8 @@
 // IMPORTANTE: reemplazar por la IP local de tu compu en la red (no "localhost",
 // porque el celu/emulador no la resuelve). Ejemplo: "http://192.168.0.15:3000"
 
-//export const BASE_URL = "http://192.168.1.5:3000";
-export const BASE_URL = "http://192.168.1.48:3000";
+export const BASE_URL = "http://192.168.1.5:3000";
+//export const BASE_URL = "http://192.168.1.48:3000";
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {

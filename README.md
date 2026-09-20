@@ -8,7 +8,7 @@ Desarrollado en el marco de la cátedra Práctica Integradora de la Licenciatura
 
 ## 🎥 Demo en video
 
-[![Demo de la app](https://img.youtube.com/vi/pfjfw8sVc2Y/0.jpg)](https://www.youtube.com/watch?v=pfjfw8sVc2Y)
+[![Demo de la app](https://github.com/user-attachments/assets/bc529aa1-4b01-4a2f-9277-fca23a6006ae)](https://www.youtube.com/watch?v=pfjfw8sVc2Y)
 
 ## 📋 Descripción
 

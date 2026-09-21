@@ -1,51 +1,48 @@
 // App.js
-// Punto de entrada. Define la navegación: si no hay sesión, muestra
-// Login/Register; si hay sesión, muestra una barra de pestañas abajo
-// con Inicio, Bicis y Estadísticas, más las pantallas de agregar/editar
-// bici encima.
-//
-// Requiere:
-//   npx expo install @react-navigation/native @react-navigation/native-stack
-//   npx expo install @react-navigation/bottom-tabs
-//   npx expo install react-native-screens react-native-safe-area-context
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { View, ActivityIndicator, LogBox } from "react-native";
+import { View, ActivityIndicator, LogBox, Image } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useFonts, Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold } from "@expo-google-fonts/poppins";
 
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import LoginScreen from "./src/screens/LoginScreen";
 import RegisterScreen from "./src/screens/RegisterScreen";
+import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import BikesScreen from "./src/screens/BikesScreen";
 import AddBikeScreen from "./src/screens/AddBikeScreen";
 import EditBikeScreen from "./src/screens/EditBikeScreen";
 import StatsScreen from "./src/screens/StatsScreen";
+import HistorialScreen from "./src/screens/HistorialScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
 
-// Expo Go tira este aviso apenas se importa expo-notifications (no funciona
-// el push real en Expo Go desde SDK 53+). No es un error de nuestro código,
-// así que lo silenciamos para que no tape la pantalla en cada apertura.
-LogBox.ignoreLogs([
-  "expo-notifications: Android Push notifications",
-]);
+LogBox.ignoreLogs(["expo-notifications: Android Push notifications"]);
+
+SplashScreen.preventAutoHideAsync();
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Barra de pestañas de abajo, visible una vez que el usuario está logueado
 function TabsPrincipales() {
+  const { colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: false, // oculta el texto, deja solo el ícono
+        tabBarShowLabel: false,
         tabBarStyle: {
           height: 70,
           paddingTop: 10,
-          paddingBottom: 16, // margen respecto al borde inferior
+          paddingBottom: 16,
+          backgroundColor: colors.superficie,
+          borderTopColor: colors.bordeSuave,
         },
       }}
     >
@@ -55,7 +52,7 @@ function TabsPrincipales() {
         options={{
           tabBarIcon: ({ focused }) => (
             <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-              <Feather name="home" size={26} color={focused ? "#2e7d32" : "#aaa"} />
+              <Feather name="home" size={26} color={focused ? colors.primario : colors.tabInactivo} />
             </View>
           ),
         }}
@@ -66,7 +63,7 @@ function TabsPrincipales() {
         options={{
           tabBarIcon: ({ focused }) => (
             <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-              <MaterialCommunityIcons name="bike" size={28} color={focused ? "#2e7d32" : "#aaa"} />
+              <MaterialCommunityIcons name="bike" size={28} color={focused ? colors.primario : colors.tabInactivo} />
             </View>
           ),
         }}
@@ -77,7 +74,18 @@ function TabsPrincipales() {
         options={{
           tabBarIcon: ({ focused }) => (
             <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-              <Feather name="bar-chart-2" size={26} color={focused ? "#2e7d32" : "#aaa"} />
+              <Feather name="bar-chart-2" size={26} color={focused ? colors.primario : colors.tabInactivo} />
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Historial"
+        component={HistorialScreen}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+              <Feather name="clock" size={26} color={focused ? colors.primario : colors.tabInactivo} />
             </View>
           ),
         }}
@@ -88,47 +96,100 @@ function TabsPrincipales() {
 
 function Navigation() {
   const { user, loading } = useAuth();
+  const { colors, tema } = useTheme();
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.fondo }}>
+        <ActivityIndicator size="large" color={colors.primario} />
       </View>
     );
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
-          <>
-            <Stack.Screen name="Tabs" component={TabsPrincipales} />
-            <Stack.Screen
-              name="AddBike"
-              component={AddBikeScreen}
-              options={{ headerShown: true, title: "Nueva bicicleta" }}
-            />
-            <Stack.Screen
-              name="EditBike"
-              component={EditBikeScreen}
-              options={{ headerShown: true, title: "Editar bicicleta" }}
-            />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <>
+      <StatusBar style={tema === "oscuro" ? "light" : "dark"} />
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {user ? (
+            <>
+              <Stack.Screen name="Tabs" component={TabsPrincipales} />
+              <Stack.Screen
+                name="AddBike"
+                component={AddBikeScreen}
+                options={{
+                  headerShown: true,
+                  title: "Nueva bicicleta",
+                  headerStyle: { backgroundColor: colors.superficie },
+                  headerTintColor: colors.texto,
+                }}
+              />
+              <Stack.Screen
+                name="EditBike"
+                component={EditBikeScreen}
+                options={{
+                  headerShown: true,
+                  title: "Editar bicicleta",
+                  headerStyle: { backgroundColor: colors.superficie },
+                  headerTintColor: colors.texto,
+                }}
+              />
+              <Stack.Screen
+                name="Profile"
+                component={ProfileScreen}
+                options={{
+                  headerShown: true,
+                  title: "Mi perfil",
+                  headerStyle: { backgroundColor: colors.superficie },
+                  headerTintColor: colors.texto,
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="Register" component={RegisterScreen} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </>
   );
 }
 
 export default function App() {
+  const [splashVisible, setSplashVisible] = useState(true);
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+      // Mostrar splash custom por 2.5 segundos
+      setTimeout(() => setSplashVisible(false), 2500);
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded || splashVisible) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
+        <Image
+          source={require("./assets/splash-icon.png")}
+          style={{ width: 280, height: 280, resizeMode: "contain" }}
+        />
+      </View>
+    );
+  }
+
   return (
-    <AuthProvider>
-      <Navigation />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Navigation />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

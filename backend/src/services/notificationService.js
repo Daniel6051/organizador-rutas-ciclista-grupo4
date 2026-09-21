@@ -4,7 +4,7 @@ const path = require('path');
 const db = require('../config/db');
 
 // Ruta al archivo de credenciales copiado por el usuario
-const serviceAccountPath = path.join(__dirname, '../../config/firebase-credentials.json');
+const serviceAccountPath = path.join(__dirname, '../config/firebase-credentials.json');
 
 let messagingApp;
 try {
@@ -74,6 +74,53 @@ async function sendMaintenanceAlert(userId, evaluacionMantenimiento) {
   }
 }
 
+const TIPOS_LABEL = {
+  bache: 'Bache',
+  corte_calle: 'Corte de calle',
+  obra: 'Obra en la vía',
+  inseguridad: 'Zona insegura',
+  semaforo_roto: 'Semáforo roto',
+  otro: 'Incidente',
+};
+
+/**
+ * Envía una alerta de incidente cercano a la ruta planificada de un usuario
+ * @param {number|string} userId
+ * @param {Object} incidente - { id, tipo, descripcion }
+ */
+async function sendIncidentAlert(userId, incidente) {
+  try {
+    if (!messagingApp) {
+      console.warn('Firebase Messaging no está inicializado, omitiendo notificación.');
+      return;
+    }
+
+    const token = await getUserToken(userId);
+    if (!token) {
+      console.log(`No se envió alerta de incidente a usuario ${userId} porque no tiene fcm_token configurado.`);
+      return;
+    }
+
+    const message = {
+      notification: {
+        title: `⚠️ ${TIPOS_LABEL[incidente.tipo] || 'Incidente'} en tu ruta`,
+        body: incidente.descripcion || 'Un ciclista reportó un incidente cerca de tu ruta planificada.',
+      },
+      data: {
+        incidentId: String(incidente.id),
+        tipo: incidente.tipo,
+      },
+      token: token,
+    };
+
+    const response = await messagingApp.send(message);
+    console.log('Alerta de incidente enviada exitosamente:', response);
+  } catch (error) {
+    console.error('Error enviando alerta de incidente:', error.message);
+  }
+}
+
 module.exports = {
-  sendMaintenanceAlert
+  sendMaintenanceAlert,
+  sendIncidentAlert,
 };

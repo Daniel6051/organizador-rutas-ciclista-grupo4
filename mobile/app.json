@@ -15,13 +15,23 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.grupo4.organizadorrutas",
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite"
-    ]
+      "expo-sqlite",
+      "expo-font"
+    ],
+    "extra": {
+      "API_URL": "http://192.168.1.5:3000",
+      "eas": {
+        "projectId": "d1a900f4-566e-469a-bdfb-285d29b25afe"
+      }
+    },
+    "owner": "danielangelceledon"
   }
 }

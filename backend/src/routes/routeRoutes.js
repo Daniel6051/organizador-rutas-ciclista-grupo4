@@ -9,6 +9,9 @@ router.use(authenticateToken);
 // POST /routes/start — Iniciar un nuevo recorrido
 router.post('/start', routeController.start);
 
+// POST /routes/plan — Calcular mejor ruta ciclista entre dos puntos (OpenRouteService)
+router.post('/plan', routeController.planRoute);
+
 // POST /routes/:id/points — Enviar y acumular puntos GPS
 router.post('/:id/points', routeController.addPoints);
 

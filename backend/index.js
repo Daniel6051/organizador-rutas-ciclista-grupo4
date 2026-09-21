@@ -6,6 +6,8 @@ const authRoutes = require('./src/routes/authRoutes');
 const bikeRoutes = require('./src/routes/bikeRoutes');
 const routeRoutes = require('./src/routes/routeRoutes');
 const userRoutes = require('./src/routes/userRoutes');
+const passwordResetRoutes = require('./src/routes/passwordReset');
+const incidentRoutes = require('./src/routes/incidentRoutes');
 const routeController = require('./src/controllers/routeController');
 const { authenticateToken } = require('./src/middleware/authMiddleware');
 const { initCronJobs } = require('./src/jobs/cronJobs');
@@ -27,9 +29,11 @@ app.get('/', (req, res) => {
 
 // Rutas de los módulos
 app.use('/auth', authRoutes);
+app.use('/auth', passwordResetRoutes);
 app.use('/bikes', bikeRoutes);
 app.use('/routes', routeRoutes);
 app.use('/users', userRoutes);
+app.use('/incidents', incidentRoutes);
 
 // Endpoint de estadísticas globales (contrato de API)
 app.get('/stats/summary', authenticateToken, routeController.getStatsSummary);

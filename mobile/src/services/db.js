@@ -1,14 +1,11 @@
 // src/services/db.js
-// Base de datos local (SQLite) para guardar puntos GPS del recorrido
-// aunque no haya conectividad (ej: zonas de montaña sin señal).
-
-import * as SQLite from "expo-sqlite";
+import * as SQLite from 'expo-sqlite';
 
 let dbInstance = null;
 
 async function getDb() {
   if (!dbInstance) {
-    dbInstance = await SQLite.openDatabaseAsync("bitacora.db");
+    dbInstance = await SQLite.openDatabaseAsync('bitacora.db');
     await dbInstance.execAsync(`
       CREATE TABLE IF NOT EXISTS puntos_pendientes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,12 +15,32 @@ async function getDb() {
         altitud REAL,
         timestamp TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS rutas_pendientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        localId TEXT NOT NULL,
+        bikeId TEXT NOT NULL,
+        inicio TEXT NOT NULL,
+        fin TEXT,
+        distanciaKm REAL DEFAULT 0,
+        desnivelM REAL DEFAULT 0,
+        terreno TEXT DEFAULT 'mixto',
+        clima TEXT DEFAULT 'soleado',
+        estilo_conduccion TEXT DEFAULT 'moderado',
+        sincronizado INTEGER DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS bicis_cache (
+        id TEXT PRIMARY KEY,
+        nombre TEXT NOT NULL,
+        tipo TEXT NOT NULL
+      );
     `);
   }
   return dbInstance;
 }
 
-// Guarda un punto GPS localmente
+// ---------- Puntos GPS ----------
 export async function guardarPuntoLocal(routeId, punto) {
   const db = await getDb();
   await db.runAsync(
@@ -32,7 +49,6 @@ export async function guardarPuntoLocal(routeId, punto) {
   );
 }
 
-// Trae los puntos guardados de una ruta que todavía no se subieron
 export async function obtenerPuntosPendientes(routeId) {
   const db = await getDb();
   return db.getAllAsync(
@@ -41,10 +57,53 @@ export async function obtenerPuntosPendientes(routeId) {
   );
 }
 
-// Borra los puntos ya confirmados por el backend
 export async function eliminarPuntosSincronizados(ids) {
   if (!ids || ids.length === 0) return;
   const db = await getDb();
-  const placeholders = ids.map(() => "?").join(",");
+  const placeholders = ids.map(() => '?').join(',');
   await db.runAsync(`DELETE FROM puntos_pendientes WHERE id IN (${placeholders})`, ids);
+}
+
+// ---------- Rutas offline ----------
+export async function guardarRutaLocal({ localId, bikeId, inicio, clima, estilo_conduccion }) {
+  const db = await getDb();
+  await db.runAsync(
+    `INSERT INTO rutas_pendientes (localId, bikeId, inicio, clima, estilo_conduccion) VALUES (?, ?, ?, ?, ?)`,
+    [localId, bikeId, inicio, clima, estilo_conduccion]
+  );
+}
+
+export async function actualizarRutaLocal(localId, { fin, distanciaKm, desnivelM, terreno }) {
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE rutas_pendientes SET fin=?, distanciaKm=?, desnivelM=?, terreno=? WHERE localId=?`,
+    [fin, distanciaKm, desnivelM, terreno, localId]
+  );
+}
+
+export async function obtenerRutasPendientes() {
+  const db = await getDb();
+  return db.getAllAsync(`SELECT * FROM rutas_pendientes WHERE sincronizado = 0`);
+}
+
+export async function marcarRutaSincronizada(localId) {
+  const db = await getDb();
+  await db.runAsync(`UPDATE rutas_pendientes SET sincronizado = 1 WHERE localId = ?`, [localId]);
+}
+
+// ---------- Bicis cache ----------
+export async function cachearBicis(bicis) {
+  const db = await getDb();
+  await db.runAsync(`DELETE FROM bicis_cache`);
+  for (const b of bicis) {
+    await db.runAsync(
+      `INSERT OR REPLACE INTO bicis_cache (id, nombre, tipo) VALUES (?, ?, ?)`,
+      [String(b.id), b.nombre, b.tipo]
+    );
+  }
+}
+
+export async function obtenerBicisCache() {
+  const db = await getDb();
+  return db.getAllAsync(`SELECT * FROM bicis_cache`);
 }

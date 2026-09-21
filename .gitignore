@@ -1,39 +1,91 @@
-# Dependencias
+# ==========================================================
+# Organizador de Rutas y Mantenimiento Ciclista — .gitignore
+# ==========================================================
+
+# ---------- Dependencias ----------
 node_modules/
 .pnp
 .pnp.js
+jspm_packages/
 
-# Variables de entorno
+# ---------- Variables de entorno y secretos ----------
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
+.env.test
+backend/.env
+mobile/.env
 
-# Expo / React Native
+# ---------- Credenciales de Firebase (Admin SDK) ----------
+backend/config/firebase-credentials.json
+backend/src/config/firebase-credentials.json
+**/firebase-credentials.json
+**/firebase-adminsdk*.json
+google-services.json
+GoogleService-Info.plist
+
+# ---------- Base de datos ----------
+*.sql.bak
+backend/backups/
+*.dump
+*.pgdump
+
+# ---------- Postman ----------
+# Los "environments" de Postman suelen guardar tokens/keys reales.
+# Las collections en sí (sin variables sensibles) se pueden versionar
+# si querés, pero por las dudas dejamos afuera cualquier environment.
+.postman/*.postman_environment.json
+**/*.postman_environment.json
+postman/*.postman_environment.json
+
+# ---------- Expo / React Native ----------
+mobile/.expo/
 .expo/
 .expo-shared/
 dist/
 web-build/
+*.jsbundle
+
+# ---------- Certificados y firma de apps ----------
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
+*.keystore
+credentials.json
 
-# Logs
+# ---------- EAS Build ----------
+# (eas.json SÍ se versiona, no tiene secretos por defecto salvo que
+# los hayas puesto en texto plano ahí — si lo hiciste, agregalo aparte)
+
+# ---------- Logs ----------
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+logs/
 
-# Build
+# ---------- Build / cobertura ----------
 build/
 coverage/
+android/app/build/
+ios/build/
 
-# Sistema
+# ---------- Sistema operativo ----------
 .DS_Store
-*.log
+Thumbs.db
+desktop.ini
 
-# Editor
+# ---------- Editores ----------
 .vscode/
 .idea/
+*.swp
+*.swo
 
-docs/INFORME_TECNICO_CONTRERAS.md
+# ---------- Varios ----------
+*.tmp
+*.temp
+.cache/

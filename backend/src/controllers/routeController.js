@@ -1,5 +1,7 @@
 const routeModel = require('../models/routeModel');
 const notificationService = require('../services/notificationService');
+const routingService = require('../services/routingService');
+const rutaActivaModel = require('../models/rutaActivaModel');
 
 /**
  * Iniciar un nuevo recorrido
@@ -188,6 +190,37 @@ async function getStatsSummary(req, res) {
   }
 }
 
+/**
+ * Calcular la mejor ruta ciclista entre dos puntos (Módulo 3)
+ * POST /routes/plan
+ */
+async function planRoute(req, res) {
+  try {
+    const userId = req.user.id;
+    const { origen, destino } = req.body;
+
+    if (
+      !origen || !destino ||
+      origen.lat == null || origen.lng == null ||
+      destino.lat == null || destino.lng == null
+    ) {
+      return res.status(400).json({ error: 'Faltan coordenadas de origen o destino' });
+    }
+
+    const ruta = await routingService.calcularRuta(origen, destino);
+
+    // Guardar como ruta activa para poder alertar si aparece un incidente cerca
+    rutaActivaModel.guardarRutaActiva(userId, ruta.geojson).catch((err) => {
+      console.error('No se pudo guardar la ruta activa:', err.message);
+    });
+
+    return res.json(ruta);
+  } catch (error) {
+    console.error('Error en planRoute:', error.message);
+    return res.status(500).json({ error: 'No se pudo calcular la ruta' });
+  }
+}
+
 module.exports = {
   start,
   addPoints,
@@ -195,4 +228,5 @@ module.exports = {
   listRoutes,
   getRouteById,
   getStatsSummary,
+  planRoute,
 };
